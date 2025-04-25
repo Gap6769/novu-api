@@ -1,13 +1,13 @@
 from ebooklib import epub
 from typing import List, Optional, Tuple
-from ..models.novel import Chapter
+from app.models.novel import Chapter
 import os
 import tempfile
 import re
 from pydantic import HttpUrl
 from .translation_service import translation_service
-from .scraper_service import scrape_chapter_content, ScraperError
-from .storage_service import storage_service
+from ..core.scraper_service import scrape_chapter_content, ScraperError
+from ..core.storage_service import storage_service
 
 
 class EpubService:

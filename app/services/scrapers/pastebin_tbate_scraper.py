@@ -2,9 +2,9 @@ import re
 import time
 from typing import List, Optional, Tuple, Dict, Any
 from pydantic import HttpUrl
-from ..models.novel import Chapter
-from .base_scraper import BaseScraper, ScraperConfig
-from .storage_service import storage_service
+from app.models.novel import Chapter
+from app.services import BaseScraper, ScraperConfig
+from app.services.core.storage_service import storage_service
 
 
 class PastebinTBATEScraper(BaseScraper):

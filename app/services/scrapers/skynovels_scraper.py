@@ -1,9 +1,9 @@
 from typing import List, Optional, Dict, Any
 from bs4 import BeautifulSoup
 import re
-from ..models.novel import Chapter
-from .base_scraper import BaseScraper, ScraperConfig
-from .storage_service import storage_service
+from app.models.novel import Chapter
+from ..core.base_scraper import BaseScraper, ScraperConfig
+from ..core.storage_service import storage_service
 import asyncio
 
 
@@ -395,7 +395,8 @@ class SkyNovelsScraper(BaseScraper):
                     print(f"No se pudo guardar la captura de pantalla: {e3}")
 
             # Intentar obtener el título directamente de la página con JavaScript
-            page_title = await self._page.evaluate("""
+            page_title = await self._page.evaluate(
+                """
                 () => {
                     // Primero, intentar obtener el título desde un elemento markdown strong
                     const markdownStrong = document.querySelector('div.skn-chp-chapter-content markdown strong');
@@ -412,7 +413,8 @@ class SkyNovelsScraper(BaseScraper):
                     // Por último, usar el título de la página
                     return document.title.replace(/\s*\|\s*SkyNovels.*$/, '').trim();
                 }
-            """)
+            """
+            )
 
             print(f"Título obtenido directamente: {page_title}")
 

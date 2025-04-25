@@ -1,8 +1,8 @@
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any
-from ..models.novel import Chapter
+from app.models.novel import Chapter
 import re
-from .base_scraper import BaseScraper, ScraperConfig
+from ..core.base_scraper import BaseScraper, ScraperConfig
 
 
 class NovelBinScraper(BaseScraper):

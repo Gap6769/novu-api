@@ -2,9 +2,9 @@ from typing import List, Optional, Dict, Any
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urljoin
-from ..models.novel import Chapter
-from .base_scraper import BaseScraper, ScraperConfig
-from .storage_service import storage_service
+from app.models.novel import Chapter
+from ..core.base_scraper import BaseScraper, ScraperConfig
+from ..core.storage_service import storage_service
 
 
 class ManhwaWebScraper(BaseScraper):

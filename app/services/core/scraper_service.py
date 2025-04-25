@@ -3,13 +3,13 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from typing import List, Dict, Optional, Tuple, Type, Any
 from pydantic import HttpUrl
-from ..models.novel import Chapter
+from app.models.novel import Chapter
 from .base_scraper import BaseScraper, ScraperConfig, ScraperError
-from .novelbin_scraper import NovelBinScraper
-from .pastebin_tbate_scraper import PastebinTBATEScraper
-from .generic_scraper import GenericScraper
-from .manhwaweb_scraper import ManhwaWebScraper
-from .skynovels_scraper import SkyNovelsScraper
+from ..scrapers.novelbin_scraper import NovelBinScraper
+from ..scrapers.pastebin_tbate_scraper import PastebinTBATEScraper
+from ..scrapers.generic_scraper import GenericScraper
+from ..scrapers.manhwaweb_scraper import ManhwaWebScraper
+from ..scrapers.skynovels_scraper import SkyNovelsScraper
 import time
 import asyncio
 import re

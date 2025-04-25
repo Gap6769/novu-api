@@ -1,8 +1,8 @@
 from typing import List, Dict, Optional, Any, Union
 from bs4 import BeautifulSoup
 import re
-from ..models.novel import Chapter
-from .base_scraper import BaseScraper, ScraperConfig
+from app.models.novel import Chapter
+from ..core.base_scraper import BaseScraper, ScraperConfig
 import asyncio
 
 

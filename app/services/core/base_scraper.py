@@ -3,10 +3,10 @@ from pydantic import BaseModel, Field
 import httpx
 import asyncio
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
-from ..models.novel import Chapter
 from playwright.async_api import async_playwright, Browser, Page
 import re
+from urllib.parse import urljoin
+from app.models.novel import Chapter
 
 
 class ScraperConfig(BaseModel):

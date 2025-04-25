@@ -4,7 +4,7 @@ import aiohttp
 import aiofiles
 from typing import Optional, Union, Dict, Any
 from pathlib import Path
-from ..db.database import get_database
+from app.db.database import get_database
 from bson import ObjectId
 
 

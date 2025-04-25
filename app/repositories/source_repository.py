@@ -3,12 +3,12 @@ from bson import ObjectId
 from app.models.source import SourceInDB, SourceCreate, SourceUpdate
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from app.repositories.base_repository import BaseRepository
 
 
-class SourceRepository:
+class SourceRepository(BaseRepository[SourceInDB, SourceCreate, SourceUpdate]):
     def __init__(self, db: AsyncIOMotorDatabase):
-        self.db = db
-        self.collection = self.db.sources
+        super().__init__(db, "sources", SourceInDB)
 
     async def get_all(self) -> List[SourceInDB]:
         """Get all sources."""
@@ -64,13 +64,8 @@ class SourceRepository:
                     continue
 
                 # Create new source
-                source_dict = source.dict()
-                source_dict["created_at"] = datetime.datetime.utcnow()
-                source_dict["updated_at"] = datetime.datetime.utcnow()
-
-                result = await self.collection.insert_one(source_dict)
-                source_dict["_id"] = result.inserted_id
-                seeded_sources.append(SourceInDB(**source_dict))
+                seeded_source = await self.create(source)
+                seeded_sources.append(seeded_source)
             except Exception as e:
                 print(f"Error seeding source {source.name}: {str(e)}")
                 continue

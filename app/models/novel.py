@@ -69,11 +69,11 @@ class NovelBase(BaseModel):
     author: Optional[str] = None
     cover_image_url: Optional[HttpUrl] = None
     description: Optional[str] = None
-    source_url: HttpUrl  # URL of the novel's main page on the source website
-    source_name: str  # Name of the source (e.g., "NovelUpdates", "Webnovel")
-    source_language: Optional[str] = None  # Language of the source (e.g., "en", "es")
+    source_url: HttpUrl
+    source_name: str
+    source_language: Optional[str] = None
     tags: List[str] = []
-    status: Optional[str] = None  # e.g., "Ongoing", "Completed"
+    status: Optional[str] = None
     type: NovelType = NovelType.NOVEL
 
 
@@ -94,6 +94,15 @@ class NovelUpdate(BaseModel):
     type: Optional[NovelType] = None
 
 
+class NovelStats(BaseModel):
+    total_chapters: int
+    last_chapter_number: int
+    read_chapters: int
+    downloaded_chapters: int
+    reading_progress: float
+    last_updated_chapters: Optional[datetime] = None
+
+
 class NovelInDB(NovelBase):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     added_at: datetime = Field(default_factory=datetime.utcnow)
@@ -105,49 +114,18 @@ class NovelInDB(NovelBase):
         json_encoders = {ObjectId: str}
 
 
-class NovelPublic(NovelInDB):
-    # Exclude MongoDB specific fields if needed for public responses
-    # exclude chapters from the response
+class NovelDetail(NovelInDB, NovelStats):
     chapters: Optional[List[Chapter]] = None
 
 
-class NovelDetail(BaseModel):
+class NovelSummary(NovelBase, NovelStats):
     id: PyObjectId = Field(alias="_id")
-    title: str
-    author: Optional[str] = None
-    cover_image_url: Optional[HttpUrl] = None
-    status: Optional[str] = None
-    type: NovelType
-    total_chapters: int
-    last_chapter_number: int
-    read_chapters: int
-    downloaded_chapters: int
-    source_language: Optional[str] = None
-    source_name: str
-    source_url: HttpUrl
-    description: Optional[str] = None
-    tags: List[str] = []
-    reading_progress: float  # Percentage of read chapters
     added_at: datetime
 
-
-class NovelSummary(BaseModel):
-    id: PyObjectId = Field(alias="_id")
-    title: str
-    author: Optional[str] = None
-    cover_image_url: Optional[HttpUrl] = None
-    status: Optional[str] = None
-    type: NovelType
-    total_chapters: int
-    last_chapter_number: int
-    read_chapters: int
-    downloaded_chapters: int
-    source_language: Optional[str] = None
-    source_name: str
-    source_url: HttpUrl
-
-    last_updated_chapters: Optional[datetime] = None
-    added_at: datetime
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
 
 class ChapterListResponse(BaseModel):
