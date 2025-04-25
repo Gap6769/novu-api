@@ -2,6 +2,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from ..core.config import settings
 from typing import Optional
 
+
 class Database:
     client: Optional[AsyncIOMotorClient] = None
     db = None
@@ -16,7 +17,7 @@ class Database:
             cls.client = AsyncIOMotorClient(url)
             cls.db = cls.client[db_name]
             # Test the connection
-            await cls.db.command('ping')
+            await cls.db.command("ping")
             print(f"Connected to MongoDB database: {db_name}")
         except Exception as e:
             print(f"Error connecting to MongoDB: {e}")
@@ -39,17 +40,21 @@ class Database:
             raise RuntimeError("Database connection not available. Ensure connect() is called at startup.")
         return cls.db
 
+
 # Global database manager instance
 db_manager = Database()
+
 
 async def connect_to_mongo():
     """Connect to MongoDB using the global database manager."""
     await db_manager.connect()
 
+
 async def close_mongo_connection():
     """Close MongoDB connection using the global database manager."""
     await db_manager.disconnect()
 
+
 def get_database():
     """Get the database instance from the global database manager."""
-    return db_manager.get_db() 
+    return db_manager.get_db()

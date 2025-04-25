@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.mark.anyio
 async def test_create_novel(client):
     data = {
@@ -12,12 +13,12 @@ async def test_create_novel(client):
         "source_language": "en",
         "tags": ["test", "novel"],
         "status": "ongoing",
-        "type": "novel"
+        "type": "novel",
     }
     response = await client.post("api/v1/novels/", json=data)
     assert response.status_code == 201
     response_data = response.json()
     assert response_data["title"] == data["title"]
     assert response_data["author"] == data["author"]
-    
-    response = await client.get("api/v1/novels/")  
+
+    response = await client.get("api/v1/novels/")

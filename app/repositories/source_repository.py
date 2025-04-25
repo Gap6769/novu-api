@@ -1,9 +1,9 @@
 from typing import List, Optional
 from bson import ObjectId
 from app.models.source import SourceInDB, SourceCreate, SourceUpdate
-from app.db.database import get_database
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
+
 
 class SourceRepository:
     def __init__(self, db: AsyncIOMotorDatabase):
@@ -30,7 +30,7 @@ class SourceRepository:
         source_dict = source.model_dump()
         source_dict["created_at"] = datetime.utcnow()
         source_dict["updated_at"] = source_dict["created_at"]
-        
+
         result = await self.collection.insert_one(source_dict)
         created_source = await self.collection.find_one({"_id": result.inserted_id})
         return SourceInDB(**created_source)
@@ -39,12 +39,9 @@ class SourceRepository:
         """Update a source."""
         update_data = source.model_dump(exclude_unset=True)
         update_data["updated_at"] = datetime.utcnow()
-        
-        result = await self.collection.update_one(
-            {"_id": ObjectId(source_id)},
-            {"$set": update_data}
-        )
-        
+
+        result = await self.collection.update_one({"_id": ObjectId(source_id)}, {"$set": update_data})
+
         if result.modified_count:
             updated_source = await self.collection.find_one({"_id": ObjectId(source_id)})
             return SourceInDB(**updated_source)
@@ -58,24 +55,24 @@ class SourceRepository:
     async def seed_sources(self, sources: List[SourceCreate]) -> List[SourceInDB]:
         """Seed the database with built-in sources."""
         seeded_sources = []
-        
+
         for source in sources:
             try:
                 # Check if source already exists
                 existing_source = await self.get_by_name(source.name)
                 if existing_source:
                     continue
-                
+
                 # Create new source
                 source_dict = source.dict()
                 source_dict["created_at"] = datetime.datetime.utcnow()
                 source_dict["updated_at"] = datetime.datetime.utcnow()
-                
+
                 result = await self.collection.insert_one(source_dict)
                 source_dict["_id"] = result.inserted_id
                 seeded_sources.append(SourceInDB(**source_dict))
             except Exception as e:
                 print(f"Error seeding source {source.name}: {str(e)}")
                 continue
-            
-        return seeded_sources 
+
+        return seeded_sources

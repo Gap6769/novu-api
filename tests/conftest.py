@@ -4,9 +4,11 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from app.main import app
 from app.db.database import get_database
 
+
 @pytest.fixture(scope="function")
 def anyio_backend():
     return "asyncio"
+
 
 @pytest.fixture(scope="function")
 async def test_db():
@@ -26,8 +28,9 @@ async def test_db():
     collections = await db.list_collection_names()
     for coll in collections:
         await db[coll].delete_many({})
-    
+
     client.close()
+
 
 @pytest.fixture(scope="function")
 async def client(test_db):

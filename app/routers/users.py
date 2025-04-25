@@ -13,12 +13,13 @@ from bson import ObjectId
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+
 def get_user_repository(db: AsyncIOMotorDatabase = Depends(get_database)) -> UserRepository:
     return UserRepository(db)
 
+
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    user_repository: UserRepository = Depends(get_user_repository)
+    token: str = Depends(oauth2_scheme), user_repository: UserRepository = Depends(get_user_repository)
 ) -> UserInDB:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -30,13 +31,13 @@ async def get_current_user(
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-        
+
         # Convert string ID to ObjectId
         try:
             user_id_obj = ObjectId(user_id)
-        except:
+        except ValueError:
             raise credentials_exception
-            
+
         user = await user_repository.get_by_id(user_id_obj)
         if user is None:
             # For development: return first user if specific user not found
@@ -48,6 +49,7 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     if expires_delta:
@@ -58,36 +60,28 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
+
 @router.post("/register", response_model=UserPublic)
-async def register(
-    user: UserCreate,
-    user_repository: UserRepository = Depends(get_user_repository)
-):
+async def register(user: UserCreate, user_repository: UserRepository = Depends(get_user_repository)):
     """Register a new user."""
     # Check if email or username already exists
     if await user_repository.get_by_email(user.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
     if await user_repository.get_by_username(user.username):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken")
+
     # Create new user
     created_user = await user_repository.create(user)
-    
+
     # Convert to public model ensuring ID is included
     user_dict = created_user.model_dump()
     user_dict["id"] = user_dict.pop("_id")  # Rename _id to id for the public model
     return UserPublic(**user_dict)
 
+
 @router.post("/token")
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    user_repository: UserRepository = Depends(get_user_repository)
+    form_data: OAuth2PasswordRequestForm = Depends(), user_repository: UserRepository = Depends(get_user_repository)
 ):
     """Login user and return access token."""
     user = await user_repository.authenticate(form_data.username, form_data.password)
@@ -97,17 +91,14 @@ async def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Update last login
     await user_repository.update_last_login(user.id)
-    
+
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": str(user.id)},
-        expires_delta=access_token_expires
-    )
-    
+    access_token = create_access_token(data={"sub": str(user.id)}, expires_delta=access_token_expires)
+
     # Create user public data
     user_public = UserPublic(
         _id=user.id,
@@ -118,14 +109,11 @@ async def login(
         is_active=user.is_active,
         preferences=user.preferences,
         created_at=user.created_at,
-        last_login=user.last_login
+        last_login=user.last_login,
     )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": user_public
-    }
+
+    return {"access_token": access_token, "token_type": "bearer", "user": user_public}
+
 
 @router.get("/me", response_model=UserPublic)
 async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
@@ -139,22 +127,20 @@ async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
         is_active=current_user.is_active,
         preferences=current_user.preferences,
         created_at=current_user.created_at,
-        last_login=current_user.last_login
+        last_login=current_user.last_login,
     )
+
 
 @router.put("/me", response_model=UserPublic)
 async def update_user_me(
     user_update: UserUpdate,
     current_user: UserInDB = Depends(get_current_user),
-    user_repository: UserRepository = Depends(get_user_repository)
+    user_repository: UserRepository = Depends(get_user_repository),
 ):
     """Update current user information."""
     updated_user = await user_repository.update(current_user.id, user_update)
     if not updated_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return UserPublic(
         id=updated_user.id,
         username=updated_user.username,
@@ -164,22 +150,20 @@ async def update_user_me(
         is_active=updated_user.is_active,
         preferences=updated_user.preferences,
         created_at=updated_user.created_at,
-        last_login=updated_user.last_login
+        last_login=updated_user.last_login,
     )
+
 
 @router.put("/me/preferences", response_model=UserPublic)
 async def update_user_preferences(
     preferences: dict,
     current_user: UserInDB = Depends(get_current_user),
-    user_repository: UserRepository = Depends(get_user_repository)
+    user_repository: UserRepository = Depends(get_user_repository),
 ):
     """Update current user preferences."""
     updated_user = await user_repository.update_preferences(current_user.id, preferences)
     if not updated_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return UserPublic(
         id=updated_user.id,
         username=updated_user.username,
@@ -189,5 +173,5 @@ async def update_user_preferences(
         is_active=updated_user.is_active,
         preferences=updated_user.preferences,
         created_at=updated_user.created_at,
-        last_login=updated_user.last_login
-    ) 
+        last_login=updated_user.last_login,
+    )

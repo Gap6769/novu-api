@@ -8,6 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Load environment variables from .env file
 load_dotenv(BASE_DIR / ".env")
 
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "WebNovel Manager API"
     API_V1_STR: str = "/api/v1"
@@ -32,6 +33,7 @@ class Settings(BaseSettings):
     class Config:
         case_sensitive = True
         env_file = BASE_DIR / ".env"
-        env_file_encoding = 'utf-8'
+        env_file_encoding = "utf-8"
+
 
 settings = Settings()

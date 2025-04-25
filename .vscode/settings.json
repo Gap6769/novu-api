@@ -1,0 +1,10 @@
+{
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.ruff": true
+    },
+    "ruff.enabled": true,
+    "ruff.importStrategy": "fromEnvironment",
+    "ruff.run": "onType",
+
+} 

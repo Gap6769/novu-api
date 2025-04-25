@@ -1,11 +1,11 @@
 from typing import Optional
-from bson import ObjectId
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.models.user import UserInDB, UserCreate, UserUpdate, UserPublic, PyObjectId
+from app.models.user import UserInDB, UserCreate, UserUpdate, PyObjectId
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 class UserRepository:
     def __init__(self, db: AsyncIOMotorDatabase):
@@ -23,7 +23,7 @@ class UserRepository:
         user_dict = user.model_dump(exclude={"password"})
         user_dict["hashed_password"] = self.get_password_hash(user.password)
         user_dict["created_at"] = datetime.utcnow()
-        
+
         result = await self.collection.insert_one(user_dict)
         created = await self.collection.find_one({"_id": result.inserted_id})
         return UserInDB(**created)
@@ -46,30 +46,24 @@ class UserRepository:
     async def update(self, user_id: PyObjectId, user_update: UserUpdate) -> Optional[UserInDB]:
         """Update a user."""
         update_data = user_update.model_dump(exclude_unset=True)
-        
+
         if "password" in update_data:
             update_data["hashed_password"] = self.get_password_hash(update_data.pop("password"))
-        
+
         if not update_data:
             return None
-            
-        result = await self.collection.update_one(
-            {"_id": user_id},
-            {"$set": update_data}
-        )
-        
+
+        result = await self.collection.update_one({"_id": user_id}, {"$set": update_data})
+
         if result.matched_count == 0:
             return None
-            
+
         updated = await self.collection.find_one({"_id": user_id})
         return UserInDB(**updated)
 
     async def update_last_login(self, user_id: PyObjectId) -> None:
         """Update the last login timestamp for a user."""
-        await self.collection.update_one(
-            {"_id": user_id},
-            {"$set": {"last_login": datetime.utcnow()}}
-        )
+        await self.collection.update_one({"_id": user_id}, {"$set": {"last_login": datetime.utcnow()}})
 
     async def authenticate(self, email: str, password: str) -> Optional[UserInDB]:
         """Authenticate a user."""
@@ -87,13 +81,10 @@ class UserRepository:
 
     async def update_preferences(self, user_id: PyObjectId, preferences: dict) -> Optional[UserInDB]:
         """Update user preferences."""
-        result = await self.collection.update_one(
-            {"_id": user_id},
-            {"$set": {"preferences": preferences}}
-        )
-        
+        result = await self.collection.update_one({"_id": user_id}, {"$set": {"preferences": preferences}})
+
         if result.matched_count == 0:
             return None
-            
+
         updated = await self.collection.find_one({"_id": user_id})
-        return UserInDB(**updated) 
+        return UserInDB(**updated)
