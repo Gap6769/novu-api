@@ -10,6 +10,7 @@ services:
       - "8001:8000"
     environment:
       - MONGODB_URL=mongodb://mongo:27017
+      - MONGODB_DB_NAME=webnovel_manager
       - DEBUG=1 # 1 para usar Google Translate, 0 para DeepL
       - DEEPL_API_KEY=tu_api_key_aqui
       - TARGET_LANGUAGE=ES

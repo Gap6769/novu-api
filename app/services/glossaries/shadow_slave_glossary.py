@@ -7,9 +7,7 @@ SHADOW_SLAVE_GLOSSARY = {
     "Memory": "Memory",
     "Echo": "Echo",
     "Soul Core": "Soul Core",
-    "Awakened": "Awakened",
     "Sleepers": "Sleepers",
-    "Flaws": "Flaws",
     "First Nightmare": "First Nightmare",
     "Second Nightmare": "Second Nightmare",
     "Third Nightmare": "Third Nightmare",
@@ -20,7 +18,6 @@ SHADOW_SLAVE_GLOSSARY = {
     "Memory Shard": "Memory Shard",
     "Soul Flame": "Soul Flame",
     "Soul Sea": "Soul Sea",
-    "Weaving": "Weaving",
     # Rangos y Títulos
     "Saint": "Santo",
     "Master": "Maestro",
@@ -47,16 +44,13 @@ SHADOW_SLAVE_GLOSSARY = {
     "Memory Realm": "Memory Realm",
     "Echo Realm": "Echo Realm",
     # Organizaciones y Grupos
-    "Sovereigns": "Sovereigns",
-    "Great Clans": "Great Clans",
-    "Great Families": "Great Families",
     "Nightmare Creatures": "Nightmare Creatures",
     "Transcendents": "Transcendents",
-    "Flawed": "Flawed",
     "Blessed": "Blessed",
     "Cursed": "Cursed",
     # Términos de Batall
     "Shadow Combat": "Shadow Combat",
     "Shadow Arts": "Shadow Arts",
     "Echoes": "Eco",
+    "Rain": "Rain",
 }
