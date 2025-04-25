@@ -1,24 +1,9 @@
 version: '3.8'
 
 services:
-  frontend:
-    build:
-      context: ./webnovel-manager
-      dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=http://192.168.1.87:8001
-    ports:
-      - "8080:8080"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://192.168.1.87:8001
-    depends_on:
-      - backend
-    networks:
-      - default
 
   backend:
     build:
-      context: ./webnovel-manager-api
       dockerfile: Dockerfile
     ports:
       - "8001:8000"
