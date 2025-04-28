@@ -40,12 +40,9 @@ class ChapterRepository:
 
         # Get paginated chapters with sorting
         sort_direction = -1 if sort_order == "desc" else 1
-        cursor = (
-            self.collection.find({"novel_id": novel_id_str})
-            .sort("chapter_number", sort_direction)
-            .skip(skip)
-            .limit(limit)
-        )
+        cursor = self.collection.find({"novel_id": novel_id_str}).sort("chapter_number", sort_direction).skip(skip)
+        if limit:
+            cursor = cursor.limit(limit)
 
         chapters = await cursor.to_list(length=limit)
 

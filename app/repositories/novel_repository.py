@@ -13,7 +13,7 @@ class NovelRepository(BaseRepository[NovelInDB, NovelInDB, NovelUpdate]):
 
     async def _calculate_novel_stats(self, novel_id: PyObjectId) -> NovelStats:
         """Calculate statistics for a novel based on its chapters."""
-        chapters, _ = await self.chapter_repository.get_by_novel_id(novel_id)
+        chapters, _ = await self.chapter_repository.get_by_novel_id(novel_id, limit=None)
         total_chapters = len(chapters)
         last_chapter_number = max(chapter.chapter_number for chapter in chapters) if chapters else 0
         read_chapters = sum(1 for chapter in chapters if chapter.read)
