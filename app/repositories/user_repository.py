@@ -35,11 +35,12 @@ class UserRepository:
 
     async def get_by_email(self, email: str) -> Optional[UserInDB]:
         """Get a user by email."""
-        user = await self.collection.find_one({"email": email})
+        user = await self.collection.find_one({"email": {"$regex": email, "$options": "i"}})
         return UserInDB(**user) if user else None
 
     async def get_by_username(self, username: str) -> Optional[UserInDB]:
         """Get a user by username."""
+
         user = await self.collection.find_one({"username": username})
         return UserInDB(**user) if user else None
 
@@ -65,9 +66,12 @@ class UserRepository:
         """Update the last login timestamp for a user."""
         await self.collection.update_one({"_id": user_id}, {"$set": {"last_login": datetime.utcnow()}})
 
-    async def authenticate(self, email: str, password: str) -> Optional[UserInDB]:
+    async def authenticate(self, user: str, password: str) -> Optional[UserInDB]:
         """Authenticate a user."""
-        user = await self.get_by_email(email)
+        if "@" in user:
+            user = await self.get_by_email(user)
+        else:
+            user = await self.get_by_username(user)
         if not user:
             return None
         if not self.verify_password(password, user.hashed_password):

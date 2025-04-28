@@ -252,15 +252,17 @@ async def scrape_chapter_content(url: str, source_name: str, novel_id: str, chap
 
 def get_scraper(source_name: str) -> BaseScraper:
     """Get the appropriate scraper for the source."""
-    from .manhwaweb_scraper import ManhwaWebScraper
-    from .novelupdates_scraper import NovelUpdatesScraper
-    from .wuxiaworld_scraper import WuxiaWorldScraper
-    from .skynovels_scraper import SkyNovelsScraper
+    from ..scrapers.manhwaweb_scraper import ManhwaWebScraper
+    from ..scrapers.skynovels_scraper import SkyNovelsScraper
+    from ..scrapers.novelbin_scraper import NovelBinScraper
+    from ..scrapers.pastebin_tbate_scraper import PastebinTBATEScraper
+    from ..scrapers.generic_scraper import GenericScraper
 
     scrapers = {
         "manhwaweb": ManhwaWebScraper,
-        "novelupdates": NovelUpdatesScraper,
-        "wuxiaworld": WuxiaWorldScraper,
+        "novelbin": NovelBinScraper,
+        "pastebin_tbate": PastebinTBATEScraper,
+        "generic": GenericScraper,
         "skynovels": SkyNovelsScraper,
     }
 

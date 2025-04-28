@@ -80,12 +80,19 @@ class NovelBinScraper(BaseScraper):
             # Wait for the chapter list to load
             await self._page.wait_for_selector(self.config.selectors["chapter_list"])
 
-            # Scroll to load all chapters
-            await self._scroll_page_to_bottom(self._page)
+            # Wait for loading div to disappear
+            try:
+                await self._page.wait_for_selector(
+                    "#chapter-archive > div:nth-child(2)", state="hidden", timeout=30000
+                )
+            except Exception as e:
+                print(f"Loading div not found or timeout: {e}")
 
-            # Get the page content after scrolling
+            # Get the page content after loading is complete
             content = await self._page.content()
             soup = BeautifulSoup(content, "html.parser")
+
+            print("novelbin scrapper")
 
             chapters = []
             # Find all chapter list items
@@ -121,8 +128,6 @@ class NovelBinScraper(BaseScraper):
 
             # Sort chapters by number and limit to max_chapters
             chapters.sort(key=lambda x: x.chapter_number)
-            # if max_chapters:
-            #    chapters = chapters[:max_chapters]
             print(f"Total chapters found: {len(chapters)}")
             return chapters
 

@@ -27,8 +27,10 @@ class Settings(BaseSettings):
 
     # JWT settings
     SECRET_KEY: str = "dev-secret-key-change-in-production"  # Default value for development
+    REFRESH_SECRET_KEY: str = "dev-refresh-secret-key-change-in-production"  # Default value for development
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 3600
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     class Config:
         case_sensitive = True

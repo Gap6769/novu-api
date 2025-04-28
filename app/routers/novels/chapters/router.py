@@ -221,11 +221,16 @@ class ChaptersRouter(BaseRouter):
                         status_code=status.HTTP_404_NOT_FOUND, detail="No chapters found on the source website"
                     )
 
+                # Get existing chapters and create a set of (novel_id, chapter_number) tuples for quick lookup
                 existing_chapters, total = await chapter_repository.get_by_novel_id(novel_id)
-                existing_chapters_dict = {c.chapter_number: c for c in existing_chapters}
+                existing_chapters_set = {(c.novel_id, c.chapter_number) for c in existing_chapters}
 
                 created_chapters = []
                 for chapter in new_chapters:
+                    # Check if chapter already exists using the set for O(1) lookup
+                    if (novel_id, chapter.chapter_number) in existing_chapters_set:
+                        continue
+
                     chapter_dict = {
                         "novel_id": novel_id,
                         "title": chapter.title,
@@ -236,19 +241,12 @@ class ChaptersRouter(BaseRouter):
                         "language": novel.source_language or "en",
                     }
 
-                    if chapter.chapter_number in existing_chapters_dict:
-                        existing_chapter = existing_chapters_dict[chapter.chapter_number]
-                        chapter_dict["read"] = existing_chapter.read
-                        chapter_dict["downloaded"] = existing_chapter.downloaded
-                        chapter_dict["local_path"] = existing_chapter.local_path
-
                     created_chapter = await chapter_repository.create(ChapterCreate(**chapter_dict))
                     created_chapters.append(created_chapter)
 
                 await novel_repository.update(novel_id, NovelUpdate(last_updated_chapters=datetime.utcnow()))
 
                 return ChapterListResponse(
-                    chapters=created_chapters,
                     total=len(created_chapters),
                     page=1,
                     page_size=len(created_chapters),

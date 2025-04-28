@@ -1,7 +1,7 @@
 {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-        "source.fixAll.ruff": true
+        "source.fixAll.ruff": "explicit"
     },
     "ruff.enabled": true,
     "ruff.importStrategy": "fromEnvironment",

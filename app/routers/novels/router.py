@@ -5,7 +5,13 @@ from app.db.database import get_database
 from app.services.core.scraper_service import scrape_novel_info, ScraperError
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.repositories.novel_repository import NovelRepository
+from app.repositories.chapter_repository import ChapterRepository
+from app.models.chapter import ChapterUpdate
 from app.routers.base import BaseRouter
+
+
+def get_chapter_repository(db: AsyncIOMotorDatabase = Depends(get_database)) -> ChapterRepository:
+    return ChapterRepository(db)
 
 
 class NovelsRouter(BaseRouter):
@@ -135,6 +141,99 @@ class NovelsRouter(BaseRouter):
             except Exception as e:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {str(e)}"
+                )
+
+        @self.router.post("/clean-duplicates", response_model=dict)
+        async def clean_duplicate_chapters(
+            chapter_repository: ChapterRepository = Depends(get_chapter_repository),
+            novel_repository: NovelRepository = Depends(get_novel_repository),
+        ):
+            """Clean up duplicate chapters for all novels, keeping only the latest version of each chapter."""
+            try:
+                # Get all novels
+                novels = await novel_repository.get_all()
+                print(f"Found {len(novels)} novels to process")
+
+                total_deleted = 0
+                total_remaining = 0
+                results = []
+
+                for novel in novels:
+                    try:
+                        # Get all chapters for the novel
+                        chapters, total = await chapter_repository.get_by_novel_id(novel.id, limit=90000)
+                        print(f"Processing novel {novel.title} - Found {total} chapters")
+
+                        # Group chapters by chapter_number
+                        chapters_by_number = {}
+                        for chapter in chapters:
+                            if chapter.chapter_number not in chapters_by_number:
+                                chapters_by_number[chapter.chapter_number] = []
+                            chapters_by_number[chapter.chapter_number].append(chapter)
+
+                        # For each chapter number, keep only the latest version but preserve read/downloaded status
+                        chapters_to_delete = []
+                        for chapter_number, chapter_list in chapters_by_number.items():
+                            if len(chapter_list) > 1:
+                                # Sort by creation date, newest first
+                                sorted_chapters = sorted(chapter_list, key=lambda x: x.added_at, reverse=True)
+
+                                # Check if any instance has read/downloaded status
+                                any_read = any(c.read for c in chapter_list)
+                                any_downloaded = any(c.downloaded for c in chapter_list)
+
+                                # Keep the newest one and update its status
+                                chapter_to_keep = sorted_chapters[0]
+                                if any_read or any_downloaded:
+                                    try:
+                                        await chapter_repository.update(
+                                            chapter_to_keep.id, ChapterUpdate(read=any_read, downloaded=any_downloaded)
+                                        )
+                                    except Exception as e:
+                                        print(
+                                            f"Error updating chapter {chapter_number} for novel {novel.title}: {str(e)}"
+                                        )
+
+                                # Mark others for deletion
+                                chapters_to_delete.extend(sorted_chapters[1:])
+
+                        # Delete duplicate chapters
+                        deleted_count = 0
+                        for chapter in chapters_to_delete:
+                            try:
+                                await chapter_repository.delete(chapter.id)
+                                deleted_count += 1
+                            except Exception as e:
+                                print(f"Error deleting chapter {chapter.id} for novel {novel.title}: {str(e)}")
+
+                        total_deleted += deleted_count
+                        total_remaining += total - deleted_count
+
+                        results.append(
+                            {
+                                "novel_id": str(novel.id),
+                                "novel_title": novel.title,
+                                "deleted_count": deleted_count,
+                                "remaining_chapters": total - deleted_count,
+                            }
+                        )
+
+                    except Exception as e:
+                        print(f"Error processing novel {novel.title}: {str(e)}")
+                        continue
+
+                return {
+                    "message": f"Cleaned up {total_deleted} duplicate chapters across {len(novels)} novels",
+                    "total_deleted": total_deleted,
+                    "total_remaining": total_remaining,
+                    "results": results,
+                }
+
+            except Exception as e:
+                print(f"Error in clean_duplicates: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error cleaning duplicate chapters: {str(e)}",
                 )
 
 

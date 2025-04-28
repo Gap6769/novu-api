@@ -11,6 +11,16 @@ class UserRole(str, Enum):
     ADMIN = "admin"
 
 
+class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
 class UserBase(BaseModel):
     """Base user model."""
 
@@ -36,6 +46,8 @@ class UserUpdate(BaseModel):
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
     preferences: Optional[Dict] = None
+    refresh_token: Optional[str] = None
+    refresh_token_expires: Optional[datetime] = None
 
 
 class UserInDB(UserBase):
@@ -45,6 +57,8 @@ class UserInDB(UserBase):
     hashed_password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = None
+    refresh_token: Optional[str] = None
+    refresh_token_expires: Optional[datetime] = None
 
     class Config:
         populate_by_name = True

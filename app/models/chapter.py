@@ -62,7 +62,7 @@ class ChapterUpdate(BaseModel):
 class ChapterListResponse(BaseModel):
     """Response model for paginated chapter lists."""
 
-    chapters: List[Chapter]
+    chapters: Optional[List[Chapter]] = None
     total: int
     page: int
     page_size: int
