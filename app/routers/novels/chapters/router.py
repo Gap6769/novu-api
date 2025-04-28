@@ -222,7 +222,7 @@ class ChaptersRouter(BaseRouter):
                     )
 
                 # Get existing chapters and create a set of (novel_id, chapter_number) tuples for quick lookup
-                existing_chapters, total = await chapter_repository.get_by_novel_id(novel_id)
+                existing_chapters, total = await chapter_repository.get_by_novel_id(novel_id, limit=None)
                 existing_chapters_set = {(c.novel_id, c.chapter_number) for c in existing_chapters}
 
                 created_chapters = []
