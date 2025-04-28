@@ -159,14 +159,23 @@ class PastebinTBATEScraper(BaseScraper):
             print(f"Skipping current chapter due to invalid URL {chapter_url}: {e}")
 
         # Find next chapter link at the end
-        next_link_pattern = r"Capítulo\s+\d+:\s+(https?://pastebin\.com/\w+)\s*$"
-        print(f"Searching for next chapter link with pattern: {next_link_pattern}")
+        # Updated pattern to handle both formats:
+        # 1. "Capítulo X: https://pastebin.com/..."
+        # 2. "X: https://pastebin.com/..."
+        next_link_patterns = [
+            r"Capítulo\s+\d+:\s+(https?://pastebin\.com/\w+)\s*$",
+            r"^\d+:\s*(https?://pastebin\.com/\w+)\s*$",
+        ]
 
-        next_link_match = re.search(next_link_pattern, raw_text_content, re.IGNORECASE)
-        if next_link_match:
-            next_chapter_url = next_link_match.group(1)
-            print(f"Found next chapter URL: {next_chapter_url}")
-        else:
+        for pattern in next_link_patterns:
+            print(f"Searching for next chapter link with pattern: {pattern}")
+            next_link_match = re.search(pattern, raw_text_content, re.IGNORECASE | re.MULTILINE)
+            if next_link_match:
+                next_chapter_url = next_link_match.group(1)
+                print(f"Found next chapter URL: {next_chapter_url}")
+                break
+
+        if not next_chapter_url:
             # Check for date format (end of chapters)
             date_pattern = r"Capítulo\s+\d+:\s+\d{2}/\d{2}/\d{4}\s*$"
             date_match = re.search(date_pattern, raw_text_content)
