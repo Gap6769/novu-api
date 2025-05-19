@@ -32,6 +32,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 3600
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    # ScraperAPI settings
+    SCRAPERAPI_KEY: str | None = None
+
+    # Proxy settings
+    PROXY_URL: str | None = None
+    PROXY_USERNAME: str | None = None
+    PROXY_PASSWORD: str | None = None
+
     class Config:
         case_sensitive = True
         env_file = BASE_DIR / ".env"

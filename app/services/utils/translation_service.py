@@ -45,28 +45,43 @@ class TranslationService:
         """Configurar el glosario de términos específicos de Shadow Slave"""
         if settings.IS_DEBUG:
             return None
+        glossary_id = None
 
         try:
-            # Intentar crear el glosario
-            glossary = self.translator.create_glossary(
-                "Shadow Slave Glossary",
-                source_lang=self.source_language,
-                target_lang=self.target_language,
-                entries=SHADOW_SLAVE_GLOSSARY,
-            )
-            return glossary.glossary_id
+            # Listar glosarios existentes y buscar uno con el nombre correcto
+            glossaries = self.translator.list_glossaries()
+            for glossary in glossaries:
+                if glossary.name == "Shadow Slave Glossary":
+                    print("Glosario existente encontrado, reutilizando.")
+                    glossary_id = glossary.glossary_id
+                    break
+
+            # Si hay demasiados glosarios, borra los que sobren (excepto el que vamos a crear)
+            MAX_GLOSSARIES = 10  # Ajusta según el límite de DeepL
+            if len(glossaries) >= MAX_GLOSSARIES:
+                print(f"Demasiados glosarios ({len(glossaries)}), borrando los más antiguos...")
+                for glossary in glossaries:
+                    try:
+                        self.translator.delete_glossary(glossary.glossary_id)
+                        print(f"Glosario {glossary.name} eliminado.")
+                    except Exception as e:
+                        print(f"Error eliminando glosario {glossary.name}: {str(e)}")
+
+            if glossary_id is None:
+                # Crear el glosario si no existe
+                glossary = self.translator.create_glossary(
+                    "Shadow Slave Glossary",
+                    source_lang=self.source_language,
+                    target_lang=self.target_language,
+                    entries=SHADOW_SLAVE_GLOSSARY,
+                )
+                glossary_id = glossary.glossary_id
+                print("Glosario creado correctamente.")
+            return glossary_id
 
         except Exception as e:
-            print(f"Error creando glosario: {str(e)}")
-            # Si falla, intentar listar glosarios existentes
-            try:
-                glossaries = self.translator.list_glossaries()
-                for glossary in glossaries:
-                    if glossary.name == "Shadow Slave Glossary":
-                        return glossary.glossary_id
-            except Exception as e:
-                print(f"Error listando glosarios: {str(e)}")
-                return None
+            print(f"Error creando o reutilizando glosario: {str(e)}")
+            return None
 
     def _split_text_into_chunks(self, text: str) -> list[str]:
         """

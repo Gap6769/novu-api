@@ -74,30 +74,80 @@ class NovelBinScraper(BaseScraper):
             if not self._page:
                 raise RuntimeError("Playwright page not initialized")
 
-            # Navigate to the page
-            await self._page.goto(url + "#tab-chapters-title")
-
-            # Wait for the chapter list to load
-            await self._page.wait_for_selector(self.config.selectors["chapter_list"])
-
-            # Wait for loading div to disappear
+            soup = None
+            playwright_error = None
             try:
-                await self._page.wait_for_selector(
-                    "#chapter-archive > div:nth-child(2)", state="hidden", timeout=30000
-                )
+                # Navigate to the page
+                await self._page.goto(url + "#tab-chapters-title")
+                await self._page.wait_for_selector(self.config.selectors["chapter_list"], timeout=50000)
+                try:
+                    await self._page.wait_for_selector(self.config.selectors["chapter_list"], timeout=50000)
+                except Exception as e:
+                    print(f"Error waiting for chapter list: {str(e)}")
+                    await self._page.screenshot(path="selector_timeout.png")
+                    content = await self._page.content()
+                    print(f"Current page content length: {len(content)}")
+                    print(f"Current URL: {self._page.url}")
+                    elements = await self._page.query_selector_all("li")
+                    print(f"Found {len(elements)} li elements on the page")
+                    raise
+
+                try:
+                    await self._page.wait_for_selector(
+                        "#chapter-archive > div:nth-child(2)", state="hidden", timeout=30000
+                    )
+                except Exception as e:
+                    print(f"Loading div not found or timeout: {e}")
+
+                content = await self._page.content()
+                soup = BeautifulSoup(content, "html.parser")
+
             except Exception as e:
-                print(f"Loading div not found or timeout: {e}")
+                playwright_error = e
+                print(f"Error con Playwright: {e}. Intentando con ScraperAPI...")
+                try:
+                    import httpx
+                    from app.core.config import settings
 
-            # Get the page content after loading is complete
-            content = await self._page.content()
-            soup = BeautifulSoup(content, "html.parser")
+                    payload = {
+                        "api_key": settings.SCRAPERAPI_KEY,
+                        "url": f"{url}#tab-chapters-title",
+                        "render": "true",
+                        "wait_for_selector": ".list-chapter",
+                        "timeout": "60000",  # 60 segundos de timeout
+                    }
 
-            print("novelbin scrapper")
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get("https://api.scraperapi.com/", params=payload, timeout=100000)
+                        response.raise_for_status()
+                        content = response.text
+
+                        # Debug info
+                        if len(content) < 1000:  # Si el contenido es muy pequeño, probablemente hay un error
+                            print(f"Warning: Content length is very small ({len(content)} bytes)")
+                            print(f"Response status: {response.status_code}")
+                            print(f"Response headers: {response.headers}")
+                            raise ValueError("Response content too small, might be an error page")
+
+                    soup = BeautifulSoup(content, "html.parser")
+                    print("novelbin scrapper (scraperapi)")
+                except Exception as e2:
+                    print(f"Error también con ScraperAPI: {e2}")
+                    if playwright_error:
+                        raise playwright_error
+                    else:
+                        raise e2
 
             chapters = []
-            # Find all chapter list items
-            chapter_items = soup.select(self.config.selectors["chapter_list"])
+            chapter_items = soup.select(self.config.selectors["chapter_list"]) if soup else []
             print(f"Total chapter items found: {len(chapter_items)}")
+
+            # Validación de capítulos
+            if not chapter_items:
+                print("Warning: No chapters found in the response")
+                print("Available selectors in the page:")
+                for selector in soup.select("*[class]"):
+                    print(f"- {selector.get('class')}")
 
             for item in chapter_items:
                 link = item.select_one(self.config.selectors["chapter_link"])
@@ -107,13 +157,11 @@ class NovelBinScraper(BaseScraper):
                 chapter_url = link["href"]
                 chapter_title = link.text.strip()
 
-                # Extract chapter number from title
                 try:
-                    # Try to extract chapter number from title using pattern
                     chapter_number = int(re.search(self.config.patterns["chapter_number"], chapter_title).group(1))
                 except (AttributeError, ValueError):
-                    # Fallback if chapter number can't be extracted
                     chapter_number = len(chapters) + 1
+                    print(f"Warning: Could not extract chapter number from title: {chapter_title}")
 
                 chapters.append(
                     Chapter(
@@ -126,9 +174,16 @@ class NovelBinScraper(BaseScraper):
                     )
                 )
 
-            # Sort chapters by number and limit to max_chapters
             chapters.sort(key=lambda x: x.chapter_number)
             print(f"Total chapters found: {len(chapters)}")
+
+            # Validación final
+            if len(chapters) < 30:
+                print("Warning: Found less than 30 chapters, this might indicate a problem")
+                print("First few chapter titles:")
+                for chapter in chapters[:5]:
+                    print(f"- {chapter.title}")
+
             return chapters
 
     async def get_chapter_content(self, url: str, *args, **kwargs) -> str:

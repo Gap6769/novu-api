@@ -1,12 +1,13 @@
 from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 import httpx
-import asyncio
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright, Browser, Page
 import re
 from urllib.parse import urljoin
 from app.models.novel import Chapter
+import random
+from app.core.config import settings
 
 
 class ScraperConfig(BaseModel):
@@ -59,9 +60,12 @@ class BaseScraper:
 
         if self.config.use_playwright:
             self._playwright = await async_playwright().start()
-            self._browser = await self._playwright.chromium.launch()
-            self._context = await self._browser.new_context()
+            # Selecciona un User-Agent aleatorio
+            user_agent = random.choice(USER_AGENTS)
+            self._browser = await self._playwright.chromium.launch(headless=True)
+            self._context = await self._browser.new_context(user_agent=user_agent)
             self._page = await self._context.new_page()
+            print(f"[Playwright] Usando User-Agent: {user_agent}")
 
         return self
 
@@ -83,23 +87,34 @@ class BaseScraper:
             await self._playwright.stop()
 
     async def fetch_html(self, url: str) -> str:
-        """Fetch HTML content from a URL with retries."""
-        if self.config.use_playwright and self._page:
-            await self._page.goto(url)
-            return await self._page.content()
-
-        if not self._client:
-            raise RuntimeError("Scraper must be used as an async context manager")
-
-        for attempt in range(self.config.max_retries):
-            try:
+        """Fetch HTML content from a URL with retries and fallback to ScraperAPI if blocked."""
+        try:
+            if self.config.use_playwright and self._page:
+                await self._page.goto(url)
+                await self._page.wait_for_timeout(10000)
+                html = await self._page.content()
+            else:
+                if not self._client:
+                    raise RuntimeError("Scraper must be used as an async context manager")
                 response = await self._client.get(url, headers=self.config.headers)
                 response.raise_for_status()
-                return response.text
-            except (httpx.HTTPError, httpx.TimeoutException) as e:
-                if attempt == self.config.max_retries - 1:
-                    raise ScraperError(f"Failed to fetch {url} after {self.config.max_retries} attempts: {e}")
-                await asyncio.sleep(1 * (attempt + 1))  # Exponential backoff
+                html = response.text
+
+            # Detecta bloqueo por Cloudflare u otros
+            if "verify you are human" in html.lower():
+                await self._page.screenshot(path="cloudflare_blocked.png")
+                raise Exception("Blocked by Cloudflare")
+
+            return html
+
+        except Exception as e:
+            print(f"Error o bloqueo detectado: {e}. Reintentando con ScraperAPI...")
+            if not settings.SCRAPERAPI_KEY:
+                raise RuntimeError("SCRAPERAPI_KEY no configurada")
+            scraperapi_url = f"http://api.scraperapi.com/?api_key={settings.SCRAPERAPI_KEY}&url={url}"
+            response = await self._client.get(scraperapi_url)
+            response.raise_for_status()
+            return response.text
 
     def resolve_url(self, url: str) -> str:
         """Resolve a relative URL against the base URL."""
@@ -172,3 +187,31 @@ class BaseScraper:
             if new_height == last_height:
                 break
             last_height = new_height
+
+
+USER_AGENTS = [
+    # Chrome (Windows)
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+    # Chrome (Mac)
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+    # Chrome (Linux)
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+    # Firefox (Windows)
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:119.0) Gecko/20100101 Firefox/119.0",
+    # Firefox (Mac)
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
+    # Edge (Windows)
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+    # Safari (iPhone)
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    # Safari (iPad)
+    "Mozilla/5.0 (iPad; CPU OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    # Android Chrome
+    "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.6045.134 Mobile Safari/537.36",
+]
