@@ -60,4 +60,6 @@ ENV/
 
 # Miscellaneous
 .DS_Store
-
+*.epub
+*.json
+*.txt

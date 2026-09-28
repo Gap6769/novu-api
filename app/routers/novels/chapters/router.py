@@ -118,7 +118,13 @@ class ChaptersRouter(BaseRouter):
                         cleaned_content = epub_service.clean_content(raw_content)
 
                         if language == "es" and novel.source_language == "en":
-                            cleaned_content = await translation_service.translate_text(cleaned_content)
+                            translated = await translation_service.translate_text(cleaned_content)
+                            if not translated:
+                                raise HTTPException(
+                                    status_code=status.HTTP_502_BAD_GATEWAY,
+                                    detail="Translation failed (no engine available); not caching English content.",
+                                )
+                            cleaned_content = translated
 
                         await storage_service.save_chapter(
                             str(novel_id), chapter_number, cleaned_content, "raw", language

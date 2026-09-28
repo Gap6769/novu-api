@@ -1,12 +1,13 @@
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any
 from app.models.novel import Chapter
+from urllib.parse import urljoin
 import re
 from ..core.base_scraper import BaseScraper, ScraperConfig
 
 
 class NovelBinScraper(BaseScraper):
-    BASE_URL = "https://novelbin.com"
+    BASE_URL = "https://readnovelfull.com"
 
     def __init__(self):
         config = ScraperConfig(
@@ -154,7 +155,7 @@ class NovelBinScraper(BaseScraper):
                 if not link:
                     continue
 
-                chapter_url = link["href"]
+                chapter_url = urljoin(self.BASE_URL, link["href"])
                 chapter_title = link.text.strip()
 
                 try:

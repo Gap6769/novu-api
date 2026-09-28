@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     # Translation settings
     DEEPL_API_KEY: str | None = None
     GOOGLE_TRANSLATE_API_KEY: str | None = None
+    GEMINI_API_KEY: str | None = None
+    # Motor de traducción principal: "deepl" | "gemini" | "google"
+    TRANSLATION_ENGINE: str = "deepl"
+    GEMINI_MODEL: str = "gemini-3.5-flash"
     TARGET_LANGUAGE: str = "ES"
 
     # JWT settings

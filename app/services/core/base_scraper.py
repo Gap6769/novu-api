@@ -148,20 +148,36 @@ class BaseScraper:
 
     def _clean_content(self, content: str, additional_patterns: Optional[List[str]] = None) -> str:
         """Clean and normalize content."""
-        # Remove unwanted elements
+        # Remove unwanted elements (scripts + contenedores de publicidad inyectados por JS)
         soup = BeautifulSoup(content, "html.parser")
-        for element in soup.select("script, style, iframe, noscript"):
+        ad_selectors = (
+            "script, style, iframe, noscript, ins, "
+            ".adsbygoogle, [class*='adsbygoogle'], "
+            "[id*='google_ads'], [class*='advert'], [id*='advert'], "
+            "[class*='banner'], [id*='banner'], [class*='promo'], [id*='promo']"
+        )
+        for element in soup.select(ad_selectors):
             element.decompose()
 
         # Get text content
         text = soup.get_text(separator="\n\n", strip=True)
 
-        # Remove unwanted text patterns
+        # Remove unwanted text patterns.
+        # NOTA: el loop aplica re.DOTALL, así que patrones con `.*` borran hasta el FINAL
+        # del texto (útil para bloques de ads al final). Para líneas promo sueltas en medio
+        # del capítulo usar `[^\n]*` para no arrastrar el resto del contenido.
         unwanted_patterns = [
             r"Enhance your reading experience by removing ads.*",
             r"This material may be protected by copyright.*",
             r"Excerpt From.*",
             r"Remove Ads From.*",
+            # Promos típicas de novelbin / readnovelfull (line-scoped, no DOTALL greedy)
+            r"[^\n]*n[o0]vel?b[i1]n[^\n]*",
+            r"[^\n]*read(ing)?\s+(the\s+)?(latest|newest)\s+chapters?[^\n]*",
+            r"[^\n]*visit\s+[\w.]+\s+(for|to)\s+the\s+best[^\n]*",
+            r"[^\n]*(this\s+chapter|content)\s+is\s+updated\s+by[^\n]*",
+            r"[^\n]*the\s+source\s+of\s+this\s+content[^\n]*",
+            r"[^\n]*follow\s+us?\s+on\s+(discord|patreon)[^\n]*",
         ]
 
         if additional_patterns:
